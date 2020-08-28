@@ -4,7 +4,7 @@ import Transaction from '../models/Transaction';
 interface RequestDTO {
   title: string;
   value: number;
-  type: string;
+  type: 'income' | 'outcome';
 }
 
 class CreateTransactionService {
@@ -15,6 +15,19 @@ class CreateTransactionService {
   }
 
   public execute({ title, type, value }: RequestDTO): Transaction {
+    if (!['income', 'outcome'].includes(type))
+      throw new Error('Invalid transaction type');
+
+    const { total } = this.transactionsRepository.getBalance();
+    if (type === 'outcome' && total < value) {
+      throw new Error('You do not have enough balance');
+    }
+    const transaction = this.transactionsRepository.create({
+      title,
+      type,
+      value,
+    });
+    return transaction;
   }
 }
 

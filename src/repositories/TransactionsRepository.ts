@@ -3,7 +3,7 @@ import Transaction from '../models/Transaction';
 interface CreateTransactionDTO {
   title: string;
   value: number;
-  type: string;
+  type: 'income' | 'outcome';
 }
 
 interface Balance {
@@ -24,33 +24,34 @@ class TransactionsRepository {
   }
 
   public getBalance(): Balance {
-    const income = this.transactions
-      .filter((transaction: Transaction) => {
-        return transaction.type === 'income';
-      })
-      .map((transaction: Transaction) => transaction.value)
-      .reduce((acc: number, cur: number) => {
-        return acc + cur;
-      });
-    const outcome = this.transactions
-      .filter((transaction: Transaction) => {
-        return transaction.type === 'outcome';
-      })
-      .map((transaction: Transaction) => transaction.value)
-      .reduce((acc: number, cur: number) => {
-        return acc + cur;
-      });
-    const balance = income - outcome;
+    const { income, outcome } = this.transactions.reduce(
+      (accumulator: Balance, transaction: Transaction) => {
+        switch (transaction.type) {
+          case 'income':
+            accumulator.income += transaction.value;
+            break;
+          case 'outcome':
+            accumulator.outcome += transaction.value;
+            break;
+          default:
+            break;
+        }
+        return accumulator;
+      },
+      {
+        income: 0,
+        outcome: 0,
+        total: 0,
+      },
+    );
 
-    return {
-      income,
-      outcome,
-      balance,
-    };
+    const total = income - outcome;
+
+    return { income, outcome, total };
   }
 
   public create({ title, value, type }: CreateTransactionDTO): Transaction {
-    const transaction = new Transaction({title, value, type});
+    const transaction = new Transaction({ title, value, type });
     this.transactions.push(transaction);
     return transaction;
   }
